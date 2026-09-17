@@ -442,6 +442,11 @@ squadNames.forEach((squad, sIdx) => {
   const squadFeatureOptions = Object.keys(squadFeatureCounts).sort((a,b)=>a.localeCompare(b,'pt-BR'))
     .map(f => `<option value="${f}">${f} (${squadFeatureCounts[f]})</option>`).join('');
 
+  const squadStatusCounts = {};
+  (ticketsBySquad[squad]||[]).forEach(t => { squadStatusCounts[t.status] = (squadStatusCounts[t.status]||0) + 1; });
+  const squadStatusOptions = Object.keys(squadStatusCounts).sort((a,b)=>a.localeCompare(b,'pt-BR'))
+    .map(s => `<option value="${s}">${s} (${squadStatusCounts[s]})</option>`).join('');
+
   const insight = SQUAD_INSIGHTS[squad];
   const insightHtml = insight ? `
     <div class="card">
@@ -486,12 +491,16 @@ squadNames.forEach((squad, sIdx) => {
     </div>
     <div class="card">
       <h2>Buscar chamados desta squad</h2>
-      <div class="search-hint">Busca por palavra-chave no título e no conteúdo (problema do cliente + melhoria sugerida) dos ${(ticketsBySquad[squad]||[]).length} chamados desta squad no snapshot original. Vazio = lista completa. Combine com o filtro de feature abaixo.</div>
+      <div class="search-hint">Busca por palavra-chave no título e no conteúdo (problema do cliente + melhoria sugerida) dos ${(ticketsBySquad[squad]||[]).length} chamados desta squad no snapshot original. Vazio = lista completa. Combine com os filtros de feature e status abaixo.</div>
       <div class="squad-search-row">
         <input type="text" class="squad-search-input" id="search-input-${sIdx}" placeholder="Buscar palavra-chave...">
         <select class="squad-search-input squad-feature-filter" id="feature-filter-${sIdx}">
           <option value="">Todas as features</option>
           ${squadFeatureOptions}
+        </select>
+        <select class="squad-search-input squad-status-filter" id="status-filter-${sIdx}">
+          <option value="">Todos os status</option>
+          ${squadStatusOptions}
         </select>
       </div>
       <div class="search-count" id="search-count-${sIdx}"></div>
@@ -508,8 +517,10 @@ function renderSquadSearch(squad, sIdx){
   const qRaw = document.getElementById(`search-input-${sIdx}`).value.trim();
   const qNorm = normalizeText(qRaw);
   const featureVal = document.getElementById(`feature-filter-${sIdx}`).value;
+  const statusVal = document.getElementById(`status-filter-${sIdx}`).value;
   let all = ticketsBySquad[squad] || [];
   if(featureVal) all = all.filter(t => t.feature === featureVal);
+  if(statusVal) all = all.filter(t => t.status === statusVal);
   const filtered = qNorm ? all.filter(t => normalizeText(`${t.key} ${t.feature} ${t.cliente} ${t.resumo} ${t.problema} ${t.melhoria}`).includes(qNorm)) : all;
   document.getElementById(`search-count-${sIdx}`).textContent = `${filtered.length.toLocaleString('pt-BR')} chamado(s)`;
   const shown = searchShown[sIdx] || 40;
@@ -566,6 +577,7 @@ squadNames.forEach((squad, sIdx) => {
   searchShown[sIdx] = 40;
   document.getElementById(`search-input-${sIdx}`).addEventListener('input', () => { searchShown[sIdx] = 40; renderSquadSearch(squad, sIdx); });
   document.getElementById(`feature-filter-${sIdx}`).addEventListener('change', () => { searchShown[sIdx] = 40; renderSquadSearch(squad, sIdx); });
+  document.getElementById(`status-filter-${sIdx}`).addEventListener('change', () => { searchShown[sIdx] = 40; renderSquadSearch(squad, sIdx); });
   document.getElementById(`search-more-${sIdx}`).addEventListener('click', () => { searchShown[sIdx] += 40; renderSquadSearch(squad, sIdx); });
   renderSquadSearch(squad, sIdx);
 });
